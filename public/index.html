@@ -1133,13 +1133,22 @@ function enterPlayer(name){
 startNowBtn.addEventListener("click",()=>{
   introOverlay.classList.add("hidden");
   gameShell.classList.remove("hidden");
-  if(onlineMode){renderOnlineBoard();rollBtn.disabled=true;setStatus("Partida online iniciada.");return;}
   playerLabel.textContent=state.player;
   playerAvatarStat.textContent=state.avatar||"🤖";
   die.textContent="🎲";
-  rollBtn.disabled=false;
-  render();
-  setStatus("¡Comienza la misión, "+state.player+"! Lanza el dado.");
+  if(onlineMode && onlineStarted){
+    // En modo online el servidor determina quién tiene el turno.
+    // Al cerrar la bienvenida no debemos bloquear el dado del jugador que inicia.
+    const me=onlinePlayers[onlineTurnIndex];
+    const myTurn=!!me && me.id===onlinePlayerId;
+    rollBtn.disabled=!myTurn || !!onlinePending;
+    renderOnlineBoard();
+    setStatus(myTurn?"🎯 Es tu turno. ¡Lanza el dado!":"⏳ Turno de "+(me?.name||"otro jugador")+".");
+  }else{
+    rollBtn.disabled=false;
+    render();
+    setStatus("¡Comienza la misión, "+state.player+"! Lanza el dado.");
+  }
   sparkleBurst();
   window.scrollTo({top:0,behavior:"smooth"});
 });
