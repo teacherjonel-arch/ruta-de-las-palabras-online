@@ -952,6 +952,7 @@ function handleOnlineMessage(msg){
     if(msg.players)onlinePlayers=msg.players; renderLobby(); return;
   }
   if(msg.type==="lobby"||msg.type==="state"){
+    const wasStarted=onlineStarted;
     onlineRenderState(msg);
     if(msg.type==="state" && msg.started && !wasStarted){ onlineStartIntro(); }
     return;
@@ -962,8 +963,9 @@ function handleOnlineMessage(msg){
     return;
   }
   if(msg.type==="question"){
-    onlinePending={kind:"question",questionIndex:msg.questionIndex};
-    showQuestionOnline(msg.questionIndex);
+    const isMyQuestion=msg.playerId===onlinePlayerId;
+    onlinePending=isMyQuestion?{kind:"question",questionIndex:msg.questionIndex}:{kind:"watchQuestion",questionIndex:msg.questionIndex,playerId:msg.playerId};
+    showQuestionOnline(msg.questionIndex,msg.playerName||"otro jugador",isMyQuestion);
     return;
   }
   if(msg.type==="event"){
@@ -978,18 +980,18 @@ function handleOnlineMessage(msg){
   }
   if(msg.type==="answerResult"){
     optionsEl.querySelectorAll("button").forEach(x=>x.disabled=true);
-    continueQuestion.classList.remove("hidden");
+    if(msg.playerId===onlinePlayerId) continueQuestion.classList.remove("hidden");
     answerResult.classList.remove("hidden");
     answerResult.classList.remove("correct-anim","wrong-anim");
     if(msg.correct){
       answerResult.innerHTML="✅ CORRECTA"; answerResult.classList.add("correct-anim");
       answerResult.style.background="#14532d88"; answerResult.style.border="1px solid #22c55e"; answerResult.style.color="#dcfce7";
-      burstConfetti();sparkleBurst();setStatus("✅ Respuesta correcta. +20 puntos.");
+      burstConfetti();sparkleBurst();setStatus((msg.playerName||"El jugador")+" respondió correctamente. +20 puntos.");
     }else{
       const q=questions[msg.questionIndex], letras=["A","B","C","D"];
       answerResult.innerHTML="❌ INCORRECTA<br><span style=\"display:block;margin-top:8px;font-size:16px;font-weight:700\">Respuesta correcta: "+letras[q.a]+") "+escapeHTML(q.o[q.a])+"</span>";
       answerResult.classList.add("wrong-anim");answerResult.style.background="#7f1d1d88";answerResult.style.border="1px solid #ef4444";answerResult.style.color="#fee2e2";
-      setStatus("❌ Respuesta incorrecta. -1 punto.");
+      setStatus((msg.playerName||"El jugador")+" respondió incorrectamente. -1 punto.");
     }
     return;
   }
@@ -1003,15 +1005,17 @@ function handleOnlineMessage(msg){
     onlineSetStatus(msg.message||"Error");
   }
 }
-function showQuestionOnline(index){
+function showQuestionOnline(index,playerName="otro jugador",canAnswer=false){
   const q=questions[index]; if(!q)return;
-  hideOverlays(); qCourse.textContent=q.c.toUpperCase(); qText.innerHTML=escapeHTML(q.q)+imgHTML(q.qi,"question-media","Imagen de la pregunta");
+  hideOverlays();
+  qCourse.textContent=q.c.toUpperCase();
+  qText.innerHTML=(canAnswer?"":("<div style=\"font-size:14px;color:var(--gold);margin-bottom:8px\">👀 Pregunta de "+escapeHTML(playerName)+" — observa y aprende</div>"))+escapeHTML(q.q)+imgHTML(q.qi,"question-media","Imagen de la pregunta");
   optionsEl.innerHTML=""; answerResult.className="hidden"; answerResult.textContent=""; continueQuestion.classList.add("hidden");
   q.o.forEach((txt,i)=>{
-    const b=document.createElement("button");b.type="button";b.className="option";
+    const b=document.createElement("button");b.type="button";b.className="option";b.disabled=!canAnswer;
     const media=(q.oi&&q.oi[i])?imgHTML(q.oi[i],"option-media","Imagen de la alternativa "+String.fromCharCode(65+i)):"";
     b.innerHTML=media+'<span><b>'+String.fromCharCode(65+i)+'.</b> '+escapeHTML(txt)+'</span>';
-    b.addEventListener("click",()=>onlineSend("answer",{index:i}));
+    if(canAnswer)b.addEventListener("click",()=>onlineSend("answer",{index:i}));
     optionsEl.appendChild(b);
   });
   qOverlay.classList.remove("hidden");
@@ -1251,7 +1255,7 @@ function showQuestion(){
         answerResult.style.background="#14532d88";
         answerResult.style.border="1px solid #22c55e";
         answerResult.style.color="#dcfce7";
-        setStatus("✅ Respuesta correcta. +20 puntos.");
+        setStatus((msg.playerName||"El jugador")+" respondió correctamente. +20 puntos.");
       }else{
         state.score=Math.max(0,state.score-1);
         const letras=["A","B","C","D"];
@@ -1261,7 +1265,7 @@ function showQuestion(){
         answerResult.style.background="#7f1d1d88";
         answerResult.style.border="1px solid #ef4444";
         answerResult.style.color="#fee2e2";
-        setStatus("❌ Respuesta incorrecta. -1 punto.");
+        setStatus((msg.playerName||"El jugador")+" respondió incorrectamente. -1 punto.");
       }
       render();
     });

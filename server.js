@@ -48,7 +48,7 @@ function beginCell(room,p){
   }
   if(qByCell[p.pos]!==undefined){
     room.pending={kind:"question",playerId:p.id,questionIndex:qByCell[p.pos]};
-    p.ws.send(JSON.stringify({type:"question",questionIndex:qByCell[p.pos]}));
+    broadcast(room,{type:"question",questionIndex:qByCell[p.pos],playerId:p.id,playerName:p.name});
     sendState(room); return;
   }
   const e=events[p.pos];
@@ -105,7 +105,7 @@ function handle(ws,msg){
     const q=(room.config.questions||[])[room.pending.questionIndex]; if(!q)return;
     const idx=Number(msg.index); const correct=idx===Number(q.a);
     if(correct)p.score+=20; else p.score=Math.max(0,p.score-1);
-    p.ws.send(JSON.stringify({type:"answerResult",correct,questionIndex:room.pending.questionIndex}));
+    broadcast(room,{type:"answerResult",correct,questionIndex:room.pending.questionIndex,playerId:p.id,playerName:p.name});
     room.pending={kind:"questionAnswered",playerId:p.id};
     sendState(room); return;
   }
