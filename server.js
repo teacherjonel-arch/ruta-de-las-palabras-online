@@ -111,7 +111,11 @@ function handle(ws,msg){
   }
   if(msg.type==="continueQuestion"){
     if(room.pending?.kind!=="questionAnswered"||room.pending.playerId!==p.id)return;
-    advanceTurn(room); sendState(room); return;
+    advanceTurn(room);
+    // Tell every connected player to close the question overlay and continue.
+    broadcast(room,{type:"turnAdvanced",turnIndex:room.turnIndex});
+    sendState(room);
+    return;
   }
   if(msg.type==="continueEvent"){
     if(!room.pending||room.pending.playerId!==p.id)return;

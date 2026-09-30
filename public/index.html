@@ -995,6 +995,20 @@ function handleOnlineMessage(msg){
     }
     return;
   }
+  if(msg.type==="turnAdvanced"){
+    // The player who answered and all observers leave the question together.
+    onlinePending=null;
+    hideOverlays();
+    const next=onlinePlayers[msg.turnIndex];
+    if(next && next.id===onlinePlayerId){
+      rollBtn.disabled=false;
+      setStatus("🎯 Es tu turno. Lanza el dado.");
+    }else if(next){
+      rollBtn.disabled=true;
+      setStatus("⏳ Turno de "+escapeHTML(next.name)+".");
+    }
+    return;
+  }
   if(msg.type==="gameOver"){
     hideOverlays(); rollBtn.disabled=true;
     showEvent({icon:"🏆",type:"META",title:"¡Partida finalizada!",msg:msg.message||"La partida ha terminado."},false);
